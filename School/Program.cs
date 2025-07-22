@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using School.Data;
 using School.Data.Repos;
+using School.MiddleWares;
 using static System.Net.Mime.MediaTypeNames;
 
 namespace School
@@ -26,6 +27,16 @@ namespace School
             builder.Services.AddScoped<SchoolRepoInterface, SchoolSqlRepo>();
             builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
+            var allowedOrigins = builder.Configuration.GetValue<string>("allowedOrigins")!.Split(","); 
+
+            builder.Services.AddCors(options =>
+            {
+                options.AddDefaultPolicy(policy =>
+                {
+                    policy.WithOrigins(allowedOrigins).AllowAnyHeader().AllowAnyMethod();
+                });
+            });
+
             var app = builder.Build();
 
             // Configure the HTTP request pipeline.
@@ -42,10 +53,15 @@ namespace School
                 app.UseSwaggerUI();
             }
 
-                app.UseHttpsRedirection();
+            // My Testing MiddleWare
+            //app.AppHeaderTest();
+
+            app.UseHttpsRedirection();
             app.UseStaticFiles();
 
             app.UseRouting();
+
+            app.UseCors();
 
             app.UseAuthorization();
 
