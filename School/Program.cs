@@ -1,5 +1,7 @@
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.OpenApi.Models;
 using School.Data;
 using School.Data.Repos;
 using School.MiddleWares;
@@ -14,10 +16,48 @@ namespace School
             var builder = WebApplication.CreateBuilder(args);
 
             // Add services to the container.
+
+
             builder.Services.AddControllersWithViews();
             
             builder.Services.AddEndpointsApiExplorer();
-            builder.Services.AddSwaggerGen();
+            builder.Services.AddSwaggerGen(options => {
+                options.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
+                {
+                    Title = "School With Auth",
+                    Version = "v1",
+                });
+                options.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+                {
+                    In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+                    Description = "Enter Token",
+                    Name = "Authorization",
+                    Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http,
+                    BearerFormat = "JWT",
+                    Scheme = "bearer"
+                });
+                options.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+                {
+                    {
+                        new OpenApiSecurityScheme
+                        {
+                            Reference = new OpenApiReference
+                            {
+                                Type = ReferenceType.SecurityScheme,
+                                Id = "Bearer"
+                            }
+                        },[]
+                    }
+                });
+            });
+
+
+            builder.Services.AddDbContext<AuthDbContext>(options =>
+            
+                options.UseSqlServer("Data Source=(localdb)\\Test;Integrated Security=True;Trust Server Certificate=True; Initial Catalog=SchoolDB;")
+            );
+            builder.Services.AddAuthorization();
+            builder.Services.AddIdentityApiEndpoints<IdentityUser>().AddEntityFrameworkStores<AuthDbContext>();
 
             builder.Services.AddDbContext<SchoolDBContext>(opt => 
             
@@ -39,6 +79,8 @@ namespace School
 
             var app = builder.Build();
 
+            app.MapIdentityApi<IdentityUser>();
+
             // Configure the HTTP request pipeline.
             if (!app.Environment.IsDevelopment())
             {
@@ -51,6 +93,7 @@ namespace School
             {
                 app.UseSwagger();
                 app.UseSwaggerUI();
+
             }
 
             // My Testing MiddleWare

@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using School.Data.Repos;
@@ -7,6 +8,7 @@ using School.Models;
 
 namespace School.Controllers
 {
+    [Authorize]
     [Route("api/school")]
     [ApiController]
     public class SchoolController : ControllerBase
