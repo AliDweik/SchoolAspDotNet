@@ -1,10 +1,15 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.UI;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using School.Data;
 using School.Data.Repos;
 using School.MiddleWares;
+using School.Services;
+using System.Text;
 using static System.Net.Mime.MediaTypeNames;
 
 namespace School
@@ -51,20 +56,55 @@ namespace School
                 });
             });
 
+            
+            var conString =builder.Configuration.GetConnectionString("School Connection");
 
             builder.Services.AddDbContext<AuthDbContext>(options =>
             
-                options.UseSqlServer("Data Source=(localdb)\\Test;Integrated Security=True;Trust Server Certificate=True; Initial Catalog=SchoolDB;")
+                options.UseSqlServer(conString)
             );
-            builder.Services.AddAuthorization();
-            builder.Services.AddIdentityApiEndpoints<IdentityUser>().AddEntityFrameworkStores<AuthDbContext>();
 
-            builder.Services.AddDbContext<SchoolDBContext>(opt => 
-            
-                opt.UseSqlServer("Data Source=(localdb)\\Test;Integrated Security=True;Trust Server Certificate=True; Initial Catalog=SchoolDB;"));
+            builder.Services.AddDbContext<SchoolDBContext>(opt =>
+
+                opt.UseSqlServer(conString)
+             );
+
+            builder.Services.AddScoped<SchoolRepoInterface, SchoolSqlRepo>();
+            builder.Services.AddScoped<IAuthService, AuthService>();
+
+
+            builder.Services.AddAuthentication(options =>
+            {
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+            }).AddJwtBearer(options => {
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidateAudience = true,
+                    ValidateLifetime = true,
+                    ValidateIssuerSigningKey = true,
+                    ValidIssuer = builder.Configuration["JwtSettings:Issuer"],
+                    ValidAudience = builder.Configuration["JwtSettings:Audience"],
+                    IssuerSigningKey = new SymmetricSecurityKey(
+                        Encoding.UTF8.GetBytes(builder.Configuration["JwtSettings:Key"]))
+                };
+            });
+
+            builder.Services.AddAuthorization();
+
+
+            /*builder.Services.AddAuthorization(options => {
+                options.AddPolicy("RequireUserRole", policy =>
+                {
+                    policy.RequireRole("User");
+                });
+            });*/
+            //builder.Services.AddIdentityApiEndpoints<IdentityUser>().AddEntityFrameworkStores<AuthDbContext>();
+
+
 
             //TODO
-            builder.Services.AddScoped<SchoolRepoInterface, SchoolSqlRepo>();
             builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
             var allowedOrigins = builder.Configuration.GetValue<string>("allowedOrigins")!.Split(","); 
@@ -77,9 +117,10 @@ namespace School
                 });
             });
 
+            
             var app = builder.Build();
 
-            app.MapIdentityApi<IdentityUser>();
+            //app.MapIdentityApi<IdentityUser>();
 
             // Configure the HTTP request pipeline.
             if (!app.Environment.IsDevelopment())
@@ -106,6 +147,7 @@ namespace School
 
             app.UseCors();
 
+            app.UseAuthentication();
             app.UseAuthorization();
 
             app.MapControllerRoute(

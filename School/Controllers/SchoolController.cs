@@ -32,6 +32,7 @@ namespace School.Controllers
             //return _repository.GetAllStudents();
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         public ActionResult <StudentReadDto> CreateStudent(StudentCreateDto student)
         {
@@ -49,6 +50,7 @@ namespace School.Controllers
             //return CreatedAtRoute(nameof(GetStudent))
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpDelete("{Id}")]
         public ActionResult DeleteStudent(Guid Id)
         {
@@ -64,6 +66,7 @@ namespace School.Controllers
             return NoContent();
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpPut("{Id}")]
         public ActionResult UpdateStudent(Guid Id, StudentUpdateDto student)
         {
